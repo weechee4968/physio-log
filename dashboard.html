@@ -217,7 +217,7 @@
     <div class="head-row">
       <div>
         <h1>Exercise Log</h1>
-        <div class="sub" id="dest">Physio programme &amp; walks</div>
+        <div class="sub" id="dest">Physio programme &amp; cardio</div>
       </div>
       <div class="head-actions">
         <button class="btn-sm" id="btnFolder" type="button" hidden>Save to folder&hellip;</button>
@@ -256,19 +256,28 @@
           <div>
             <label for="type">Exercise type</label>
             <select id="type" name="type">
-              <option value="Walk">Walk</option>
+              <option value="Cycle">Cycle</option>
               <option value="Physio">Physio</option>
+              <option value="Stair Climber">Stair Climber</option>
+              <option value="Walk" selected>Walk</option>
             </select>
           </div>
         </div>
 
-        <div class="panel" id="panelWalk">
+        <div class="panel" id="panelCardio">
           <div class="row">
             <div>
-              <label for="km">Distance walked</label>
+              <label for="km">Distance</label>
               <div class="field">
                 <input id="km" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
                 <span class="unit">km</span>
+              </div>
+            </div>
+            <div>
+              <label for="mins">Duration</label>
+              <div class="field">
+                <input id="mins" type="number" inputmode="numeric" pattern="[0-9]*" min="0" step="1" placeholder="0">
+                <span class="unit">min</span>
               </div>
             </div>
             <div>
@@ -358,6 +367,9 @@
     exNames(e).forEach(function(n){ BY_NAME[n.toLowerCase()] = e; });
     BY_SHORT[e.short.toLowerCase()] = e;
   });
+  /* alphabetical, matching the picker; everything but Physio is distance-or-time work */
+  var CARDIO = {"Cycle":1, "Stair Climber":1, "Walk":1};
+  function isCardio(t){ return CARDIO[t] === 1; }
   var LOCATIONS = ["East Coast Park","Bukit Timah Hill","Harvey Estate","Gym"];
   var PER_PAGE = 20, STORE = "exercise-log-v1", SEQ = "exercise-log-files";
 
@@ -490,7 +502,7 @@
   /* one row per record; each exercise's settings and rep values fan out across columns */
   function paramHead(ex, p){ return ex.name+" "+p.label+" ("+p.unit+")"; }
   function csvHeader(){
-    var head = ["Date","Type","Location","Distance (km)"];
+    var head = ["Date","Type","Location","Distance (km)","Duration (min)"];
     PHYSIO.forEach(function(ex){
       (ex.params || []).forEach(function(p){ head.push(paramHead(ex, p)); });
       for(var i=1;i<=ex.reps;i++) head.push(ex.name+" Rep "+i+" ("+ex.unit+")");
@@ -503,10 +515,11 @@
       if(a.date !== b.date) return a.date < b.date ? -1 : 1;
       return (a.id||0) - (b.id||0);
     }).forEach(function(r){
-      var row = [r.date, r.type, "", ""];
-      if(r.type === "Walk"){
+      var row = [r.date, r.type, "", "", ""];
+      if(isCardio(r.type)){
         row[2] = r.loc || "";
-        row[3] = fmtKm(r.km);
+        row[3] = (r.km === null || r.km === undefined) ? "" : fmtKm(r.km);
+        row[4] = (r.mins === null || r.mins === undefined) ? "" : r.mins;
         PHYSIO.forEach(function(ex){
           (ex.params || []).forEach(function(){ row.push(""); });
           for(var i=0;i<ex.reps;i++) row.push("");
@@ -762,21 +775,21 @@
   function showDest(){
     var d = $("dest"), f = $("btnFolder"), next = esc(peekName());
     if(dirHandle){
-      d.innerHTML = 'Physio programme &amp; walks &middot; saving to <b>'+esc(dirHandle.name)+'/'+next+'</b>';
+      d.innerHTML = 'Physio programme &amp; cardio &middot; saving to <b>'+esc(dirHandle.name)+'/'+next+'</b>';
       f.textContent = "Change folder…";
       f.hidden = false;
     }else if(isIOS()){
       var file = makeFile("test", "test.csv");
-      d.innerHTML = 'Physio programme &amp; walks &middot; next export <b>'+next+'</b> — '+
+      d.innerHTML = 'Physio programme &amp; cardio &middot; next export <b>'+next+'</b> — '+
         (canShareFile(file) ? 'choose <b>Save to Files</b> and pick this folder'
                             : 'this page can only show the CSV for copying, so keep a note handy');
       f.hidden = true;
     }else if(canPickFolder()){
-      d.innerHTML = 'Physio programme &amp; walks &middot; exports go to <b>Downloads</b> — pick a folder to save beside this file';
+      d.innerHTML = 'Physio programme &amp; cardio &middot; exports go to <b>Downloads</b> — pick a folder to save beside this file';
       f.textContent = "Save to folder…";
       f.hidden = false;
     }else{
-      d.innerHTML = 'Physio programme &amp; walks &middot; next export <b>'+next+'</b>';
+      d.innerHTML = 'Physio programme &amp; cardio &middot; next export <b>'+next+'</b>';
       f.hidden = true;
     }
   }
@@ -807,6 +820,19 @@
     if(cur !== "" || row.length){ row.push(cur); rows.push(row); }
     return rows.filter(function(r){ return r.some(function(c){ return String(c).trim() !== ""; }); });
   }
+  /* a file may name the type in any case, and older files only knew Walk and Physio */
+  function readType(raw){
+    var t = String(raw || "").trim().toLowerCase();
+    if(t === "walk") return "Walk";
+    if(t === "cycle") return "Cycle";
+    if(t === "stair climber") return "Stair Climber";
+    if(t === "physio") return "Physio";
+    if(/stair/.test(t)) return "Stair Climber";
+    if(/cycl|bike|bicycle/.test(t)) return "Cycle";
+    if(/walk/.test(t)) return "Walk";
+    return "Physio";
+  }
+
   /* wide files (one row per record) are the current format;
      older long files with Rep/Value columns still import */
   function importCSV(text){
@@ -818,7 +844,7 @@
     var isLong = !head || (head.indexOf("value") > -1 && head.indexOf("rep") > -1);
     var added = isLong ? readLong(rows, head) : readWide(rows, head);
     added = added.filter(function(g){
-      return g.type === "Walk" ? g.km !== null : Object.keys(g.items).length;
+      return isCardio(g.type) ? (g.km !== null || g.mins !== null) : Object.keys(g.items).length;
     });
     records = added;
     syncUid();
@@ -829,8 +855,9 @@
   /* current format: Date, Type, Location, Distance (km), then "<exercise> Rep n" columns */
   function readWide(rows, head){
     var at = function(n){ return head.indexOf(n); };
-    var col = {date:at("date"), type:at("type"), loc:at("location"), km:-1};
+    var col = {date:at("date"), type:at("type"), loc:at("location"), km:-1, mins:-1};
     for(var i=0;i<head.length;i++){ if(/^distance/.test(head[i]) || head[i] === "km"){ col.km = i; break; } }
+    for(var j=0;j<head.length;j++){ if(/^duration/.test(head[j]) || head[j] === "min" || head[j] === "mins"){ col.mins = j; break; } }
     /* every heading a settings column may carry, current names and older ones */
     var paramBy = {};
     PHYSIO.forEach(function(ex){
@@ -854,11 +881,13 @@
     rows.forEach(function(r){
       var date = String(r[col.date]||"").trim();
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-      var type = /walk/i.test(String(r[col.type]||"")) ? "Walk" : "Physio";
-      var rec = {id:uid(), date:date, type:type, km:null, loc:"", items:{}, params:{}};
-      if(type === "Walk"){
+      var type = readType(r[col.type]);
+      var rec = {id:uid(), date:date, type:type, km:null, mins:null, loc:"", items:{}, params:{}};
+      if(isCardio(type)){
         var km = col.km === -1 ? null : kmOrNull(r[col.km]);
         if(km !== null && !isNaN(km)) rec.km = km;
+        var mins = col.mins === -1 ? null : intOrNull(r[col.mins]);
+        if(mins !== null && !isNaN(mins)) rec.mins = mins;
         var loc = col.loc === -1 ? "" : String(r[col.loc]||"").trim();
         if(LOCATIONS.indexOf(loc) > -1) rec.loc = loc;
       }else{
@@ -893,14 +922,14 @@
     rows.forEach(function(r){
       var date = String(r[col.date]||"").trim();
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
-      var type = /walk/i.test(String(r[col.type]||"")) ? "Walk" : "Physio";
+      var type = readType(r[col.type]);
       var key = date + "|" + type;
       if(!groups[key]){
-        groups[key] = {id:uid(), date:date, type:type, km:null, loc:"", items:{}, params:{}};
+        groups[key] = {id:uid(), date:date, type:type, km:null, mins:null, loc:"", items:{}, params:{}};
         order.push(key);
       }
       var g = groups[key], raw = r[col.val];
-      if(type === "Walk"){
+      if(isCardio(type)){
         var km = kmOrNull(raw);
         if(km !== null && !isNaN(km)) g.km = km;
         var loc = col.loc === -1 ? "" : String(r[col.loc]||"").trim();
@@ -925,7 +954,8 @@
     var cut = new Date(); cut.setDate(cut.getDate()-27);
     var cutISO = cut.getFullYear()+"-"+pad(cut.getMonth()+1)+"-"+pad(cut.getDate());
     records.forEach(function(r){
-      if(r.type === "Walk") km += (+r.km || 0); else physio++;
+      if(r.type === "Walk") km += (+r.km || 0);
+      if(r.type === "Physio") physio++;
       if(r.date >= cutISO) days[r.date] = 1;
     });
     var tiles = [
@@ -955,8 +985,11 @@
 
     $("list").innerHTML = slice.map(function(r){
       var d = fmtDate(r.date), body;
-      if(r.type === "Walk"){
-        body = '<div class="rec-km">'+fmtKm(r.km)+'<small>km walked</small></div>'+
+      if(isCardio(r.type)){
+        var bits = [];
+        if(r.km !== null && r.km !== undefined) bits.push(fmtKm(r.km)+'<small>km</small>');
+        if(r.mins !== null && r.mins !== undefined) bits.push(r.mins+'<small>min</small>');
+        body = '<div class="rec-km">'+(bits.join(" &middot; ") || "&mdash;")+'</div>'+
                (r.loc ? '<div class="rec-loc">'+esc(r.loc)+'</div>' : "");
       }else{
         var chips = PHYSIO.map(function(ex){
@@ -979,7 +1012,7 @@
       }
       return '<div class="rec'+(r.id === editingId ? " is-editing" : "")+'">'+
         '<div class="rec-date"><div class="rec-day">'+d.day+'</div><div class="rec-year">'+d.year+'</div></div>'+
-        '<div class="rec-main"><span class="pill '+(r.type==="Walk"?"walk":"physio")+'">'+r.type+'</span>'+body+'</div>'+
+        '<div class="rec-main"><span class="pill '+(isCardio(r.type)?"walk":"physio")+'">'+r.type+'</span>'+body+'</div>'+
         '<div class="rec-tools">'+
           '<button type="button" data-edit="'+r.id+'" aria-label="Edit record" title="Edit">&#9998;</button>'+
           '<button type="button" class="del" data-del="'+r.id+'" aria-label="Delete record" title="Delete">&times;</button>'+
@@ -997,12 +1030,12 @@
 
   /* ---------------- form ---------------- */
   function switchType(){
-    var walk = $("type").value === "Walk";
-    $("panelWalk").hidden = !walk;
-    $("panelPhysio").hidden = walk;
+    var cardio = isCardio($("type").value);
+    $("panelCardio").hidden = !cardio;
+    $("panelPhysio").hidden = cardio;
   }
   function clearInputs(){
-    $("km").value = ""; $("loc").value = "";
+    $("km").value = ""; $("mins").value = ""; $("loc").value = "";
     Array.prototype.forEach.call($("panelPhysio").querySelectorAll("input"), function(i){ i.value = ""; });
   }
   function findRec(id){
@@ -1018,8 +1051,9 @@
     $("date").value = r.date;
     $("type").value = r.type;
     switchType();
-    if(r.type === "Walk"){
+    if(isCardio(r.type)){
       $("km").value = r.km === null || r.km === undefined ? "" : fmtKm(r.km);
+      $("mins").value = r.mins === null || r.mins === undefined ? "" : r.mins;
       $("loc").value = LOCATIONS.indexOf(r.loc) > -1 ? r.loc : "";
     }else{
       PHYSIO.forEach(function(ex){
@@ -1060,14 +1094,18 @@
     var date = $("date").value;
     if(!date){ say("Pick a date first.","err"); $("date").focus(); return null; }
     var type = $("type").value;
-    var rec = {id:id, date:date, type:type, km:null, loc:"", items:{}, params:{}};
+    var rec = {id:id, date:date, type:type, km:null, mins:null, loc:"", items:{}, params:{}};
 
-    if(type === "Walk"){
+    if(isCardio(type)){
       var km = kmOrNull($("km").value);
-      if(km === null){ say("Enter the distance walked.","err"); $("km").focus(); return null; }
       if(isNaN(km)){ say("Distance must be a number with up to 2 decimal places.","err"); $("km").focus(); return null; }
+      var mins = intOrNull($("mins").value);
+      if(isNaN(mins)){ say("Duration must be a whole number of minutes.","err"); $("mins").focus(); return null; }
+      /* a stair climber covers no ground, so either measure on its own is a record */
+      if(km === null && mins === null){ say("Enter a distance or a duration.","err"); $("km").focus(); return null; }
       if(!$("loc").value){ say("Choose a location.","err"); $("loc").focus(); return null; }
       rec.km = km;
+      rec.mins = mins;
       rec.loc = $("loc").value;
     }else{
       var bad = null, badParam = null, any = false;
