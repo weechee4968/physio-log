@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script>
+/* iPhones and iPads give no console, so a script error has to announce itself on the page */
+(function(){
+  /* proves scripts run at all: the no-JavaScript notice below is hidden only by this line */
+  document.documentElement.className += " js";
+  function shout(msg){
+    try{
+      var w = document.getElementById("warn");
+      if(!w) return;
+      w.hidden = false;
+      w.textContent = "This device hit an error: " + msg;
+    }catch(e){}
+  }
+  window.onerror = function(m, src, line){ shout(m + " (line " + line + ")"); };
+  window.addEventListener("unhandledrejection", function(e){
+    var r = e && e.reason;
+    shout("unfinished task — " + ((r && r.message) || r || "unknown"));
+  });
+})();
+</script>
+<meta name="theme-color" content="#0f766e">
+<title>Exercise Log</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --surface:#ffffff; --surface-2:#f8fafc; --line:#e2e5ea;
+    --ink:#16191d; --ink-2:#4a5057; --ink-3:#7b828b;
+    --accent:#0f766e; --accent-ink:#ffffff; --accent-soft:#e6f2f0;
+    --walk:#1d5bbf; --walk-soft:#e7eefb;
+    --physio:#8a4b12; --physio-soft:#fbeee0;
+    --danger:#b3261e;
+    --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06);
+  }
+  :root:not([data-theme="light"]){ color-scheme: light; }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --bg:#101317; --surface:#191d23; --surface-2:#20252c; --line:#2c323a;
+      --ink:#eef1f4; --ink-2:#b3bac2; --ink-3:#858d97;
+      --accent:#3fbfae; --accent-ink:#0c1512; --accent-soft:#16302c;
+      --walk:#7fb0ff; --walk-soft:#182636;
+      --physio:#e5a869; --physio-soft:#33261a;
+      --danger:#ff8a80;
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.28);
+    }
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased;
+    padding:0 0 calc(28px + env(safe-area-inset-bottom));
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left)) 0 max(16px,env(safe-area-inset-right))}
+
+  header{padding:26px 0 18px}
+  h1{font-size:22px;line-height:1.25;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--ink-3);font-size:13.5px;margin-top:4px}
+  .sub b{color:var(--ink-2);font-weight:600}
+  .head-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+  .head-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+  .tile .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+  .tile .v{font-size:24px;font-weight:650;letter-spacing:-.02em;margin-top:4px;font-variant-numeric:tabular-nums}
+  .tile .v small{font-size:12.5px;font-weight:500;color:var(--ink-3);margin-left:3px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px}
+  .card.editing{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}
+  .card-h{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .card-h h2{margin:0;font-size:15px;font-weight:650;letter-spacing:-.005em}
+  .card-h .hint{font-size:12.5px;color:var(--ink-3)}
+  .card-b{padding:18px}
+
+  label,.lbl{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:6px}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  input,select,button{font:inherit;font-size:16px;color:inherit}
+  input[type=date],input[type=number],select,.field input{
+    width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;min-height:46px;color:var(--ink);-webkit-appearance:none;appearance:none;
+  }
+  input[type=date]{min-height:46px;line-height:1.2}
+  select{
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+    background-position:calc(100% - 19px) 21px,calc(100% - 13px) 21px;background-size:6px 6px,6px 6px;background-repeat:no-repeat;
+    padding-right:38px;
+  }
+  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:transparent}
+  .field{position:relative}
+  .field input{padding-right:56px;text-align:left;font-variant-numeric:tabular-nums}
+  .field .unit{
+    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+    font-size:12.5px;color:var(--ink-3);pointer-events:none;font-weight:500;max-width:52px;text-align:right;line-height:1.1
+  }
+  .field.wide .unit{max-width:none}
+  .field.wide input{padding-right:74px}
+  input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  input[type=number]{-moz-appearance:textfield}
+
+  .panel{margin-top:18px;padding-top:18px;border-top:1px dashed var(--line)}
+
+  .ex{padding:14px 0;border-bottom:1px solid var(--line)}
+  .ex:last-child{border-bottom:0;padding-bottom:2px}
+  .ex-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .ex-name{font-size:14.5px;font-weight:650;letter-spacing:-.005em}
+  .ex-meta{font-size:12px;color:var(--ink-3)}
+  .reps{display:grid;grid-template-columns:repeat(auto-fit,minmax(124px,1fr));gap:10px}
+  .params{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;
+    padding-bottom:12px;margin-bottom:12px;border-bottom:1px dashed var(--line)}
+  .params .rep{max-width:230px}
+  .rep{max-width:210px}
+  .rep-lbl{display:block;font-size:11.5px;color:var(--ink-3);font-weight:600;margin-bottom:5px;letter-spacing:.02em}
+
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;align-items:center}
+  button,.btnish{
+    border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+    padding:11px 16px;min-height:46px;font-weight:600;font-size:14.5px;cursor:pointer;
+    -webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent;
+  }
+  button:active,.btnish:active{transform:translateY(1px)}
+  /* a real file input laid over its own label — iOS ignores programmatic clicks on hidden inputs */
+  .btnish{position:relative;display:inline-flex;align-items:center;justify-content:center;
+    margin:0;overflow:hidden;-webkit-user-select:none;user-select:none}
+  .btnish input[type=file]{position:absolute;top:0;left:0;width:100%;height:100%;
+    opacity:0;cursor:pointer;font-size:0}
+  .chk{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:13px;color:var(--ink-2);font-weight:600}
+  .chk input{width:20px;height:20px;min-height:0;margin:0;-webkit-appearance:auto;appearance:auto;accent-color:var(--accent)}
+  #nojs{display:block}
+  .js #nojs{display:none}
+  #nojs b{display:block;margin-bottom:4px}
+  #nojs .how{font-weight:500;margin-top:6px;display:block;line-height:1.5}
+  .warn{background:var(--physio-soft);color:var(--physio);border:1px solid currentColor;
+    border-radius:var(--radius);padding:12px 14px;font-size:13px;font-weight:600;margin-bottom:18px}
+  .btn-primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+  .btn-sm{padding:8px 12px;min-height:38px;font-size:13px}
+  .btn-ghost{background:transparent}
+  .msg{font-size:13px;font-weight:600}
+  .msg.err{color:var(--danger)}
+  .msg.ok{color:var(--accent)}
+
+  .rec{display:flex;gap:14px;padding:14px 18px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .rec:last-child{border-bottom:0}
+  .rec.is-editing{background:var(--accent-soft)}
+  .rec-date{min-width:74px;flex:0 0 auto}
+  .rec-day{font-size:15px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .rec-year{font-size:11.5px;color:var(--ink-3)}
+  .rec-main{flex:1 1 auto;min-width:0}
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:999px;margin-bottom:7px}
+  .pill.walk{background:var(--walk-soft);color:var(--walk)}
+  .pill.physio{background:var(--physio-soft);color:var(--physio)}
+  .rec-km{font-size:17px;font-weight:650;font-variant-numeric:tabular-nums}
+  .rec-km small{font-size:12.5px;font-weight:500;color:var(--ink-3);margin-left:3px}
+  .rec-loc{font-size:13px;color:var(--ink-2);margin-top:2px}
+  .rec-loc:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ink-3);vertical-align:middle;margin-right:7px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+  .chip b{color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .chip .p{color:var(--ink-3)}
+  .rec-tools{flex:0 0 auto;display:flex;gap:2px}
+  .rec-tools button{background:transparent;border:0;color:var(--ink-3);font-size:16px;line-height:1;padding:6px;min-height:38px;min-width:38px;border-radius:8px}
+  .rec-tools button:active{color:var(--ink)}
+  .rec-tools .del{font-size:20px}
+  .rec-tools .del:active{color:var(--danger)}
+  .empty{padding:44px 18px;text-align:center;color:var(--ink-3);font-size:14px}
+  .pager{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-top:1px solid var(--line)}
+  .pager .count{font-size:12.5px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .pager .grp{display:flex;gap:8px}
+  button:disabled{opacity:.4;cursor:default}
+
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%) translateY(20px);
+    bottom:calc(18px + env(safe-area-inset-bottom));
+    background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:999px;
+    font-size:13.5px;font-weight:600;box-shadow:var(--shadow);opacity:0;pointer-events:none;
+    transition:opacity .2s ease,transform .2s ease;z-index:50;max-width:90vw;text-align:center
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* last resort when the browser refuses to hand over a file (a local page on iOS) */
+  .sheet{position:fixed;top:0;right:0;bottom:0;left:0;z-index:60;background:rgba(0,0,0,.45);
+    display:flex;align-items:flex-end;justify-content:center;padding:0}
+  .sheet-b{background:var(--surface);width:100%;max-width:640px;max-height:88vh;overflow:auto;
+    border-radius:var(--radius) var(--radius) 0 0;border:1px solid var(--line);
+    padding:16px max(16px,env(safe-area-inset-left)) calc(16px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:12px}
+  .sheet-h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .sheet-h b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sheet-p{margin:0;font-size:13px;color:var(--ink-2);line-height:1.45}
+  .sheet textarea{width:100%;min-height:34vh;resize:vertical;background:var(--surface-2);
+    color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px;
+    font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;-webkit-appearance:none;appearance:none}
+
+  @media (max-width:640px){
+    .rep{max-width:none}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .card-b{padding:16px 14px}
+    .rec{padding:13px 14px;gap:11px}
+    .card-h{padding:14px}
+    .pager{padding:12px 14px}
+    h1{font-size:20px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="head-row">
+      <div>
+        <h1>Exercise Log</h1>
+        <div class="sub" id="dest">Physio programme &amp; walks</div>
+      </div>
+      <div class="head-actions">
+        <button class="btn-sm" id="btnFolder" type="button" hidden>Save to folder&hellip;</button>
+        <button class="btn-sm" id="btnExport" type="button">Export now</button>
+        <label class="btn-sm btnish" id="btnImport">Import CSV
+          <input type="file" id="fileImport">
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <div class="warn" id="nojs">
+    <b>JavaScript isn&rsquo;t running, so this page can&rsquo;t do anything yet.</b>
+    Records, exports and the physio fields all need it.
+    <span class="how">On iPhone or iPad this is what you see when the file is opened from Files or iCloud Drive:
+    that is a read-only preview with scripts switched off, and no setting turns them on.
+    Open the page from a web address in Safari instead &mdash; then Share &rarr; Add to Home Screen.
+    If you are already on a web address, check Settings &rarr; Safari &rarr; Advanced &rarr; JavaScript.</span>
+  </div>
+  <div class="warn" id="warn" hidden></div>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="card" id="formCard">
+    <div class="card-h">
+      <h2 id="formTitle">Add a record</h2>
+      <span class="hint" id="formHint">Leave a rep blank if not done</span>
+    </div>
+    <div class="card-b">
+      <form id="form" novalidate>
+        <div class="row">
+          <div>
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" required>
+          </div>
+          <div>
+            <label for="type">Exercise type</label>
+            <select id="type" name="type">
+              <option value="Walk">Walk</option>
+              <option value="Physio">Physio</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel" id="panelWalk">
+          <div class="row">
+            <div>
+              <label for="km">Distance walked</label>
+              <div class="field">
+                <input id="km" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+                <span class="unit">km</span>
+              </div>
+            </div>
+            <div>
+              <label for="loc">Location</label>
+              <select id="loc">
+                <option value="">Select location</option>
+                <option>East Coast Park</option>
+                <option>Bukit Timah Hill</option>
+                <option>Harvey Estate</option>
+                <option>Gym</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" id="panelPhysio" hidden></div>
+
+        <div class="actions">
+          <button type="submit" class="btn-primary" id="btnSubmit">Add record</button>
+          <button type="button" class="btn-ghost" id="btnCancel" hidden>Cancel edit</button>
+          <button type="button" class="btn-ghost" id="btnReset">Clear</button>
+          <label class="chk" for="auto"><input type="checkbox" id="auto" checked>Export after each record</label>
+          <span class="msg" id="msg" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-h">
+      <h2>Recent records</h2>
+      <span class="hint">Newest first &middot; 20 per page</span>
+    </div>
+    <div id="list"></div>
+    <div class="pager" id="pager" hidden>
+      <span class="count" id="count"></span>
+      <span class="grp">
+        <button class="btn-sm" id="prev" type="button">&larr; Newer</button>
+        <button class="btn-sm" id="next" type="button">Older &rarr;</button>
+      </span>
+    </div>
+  </section>
+
+</div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-labelledby="sheetName">
+  <div class="sheet-b">
+    <div class="sheet-h"><b id="sheetName">exercise.csv</b>
+      <button class="btn-sm" id="sheetClose" type="button">Done</button></div>
+    <p class="sheet-p" id="sheetWhy"></p>
+    <textarea id="sheetText" readonly spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+    <div class="actions" style="margin-top:0"><button class="btn-sm btn-primary" id="sheetCopy" type="button">Copy all</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---- programme, mapped from physio.csv ---- */
+  var PHYSIO = [
+    {key:"hamstring",  name:"Wall-Lean Hamstring Stretch",       short:"Hamstring stretch", reps:5,
+     metric:"No. of Hold",     unit:"holds",    was:["Wall-Lean Hamstring Stretch"],
+     params:[{key:"secs",   label:"Seconds / Hold",        unit:"s",      hint:"20", chip:"s/hold"}]},
+    {key:"statlunge",  name:"Wall-Supported Static Lunge / Leg / Rep", short:"Static lunge", reps:5,
+     metric:"No. of Lunge",    unit:"lunges",   was:["Wall-Supported Static Lunge / Leg","Wall-Supported Static Lunge"],
+     params:[{key:"perleg", label:"Lunge / Leg / Rep",     unit:"lunges", hint:"6",  chip:"lunges/leg"}]},
+    {key:"coretwist",  name:"Cable Core Twist Hold / Side",      short:"Core twist",        reps:5,
+     metric:"No. of Hold",     unit:"holds",    was:["Cable Core Twist Hold"],
+     params:[{key:"secs",   label:"Seconds / Hold / Side", unit:"s",      hint:"10", chip:"s/hold/side"}]},
+    {key:"fwdlunge",   name:"Forward Lunge / Leg / Rep",         short:"Forward lunge",     reps:5,
+     metric:"No. of Lunge",    unit:"lunges",   was:["Forward Lunge (2 kg Dumbbell)"],
+     params:[{key:"weight", label:"Dumbbell Weight",       unit:"kg",     hint:"2", chip:"kg", dec:true},
+             {key:"perleg", label:"Lunge / Leg / Rep",     unit:"lunges", hint:"20", chip:"lunges/leg"}]},
+    {key:"sidelunge",  name:"Side Lunge / Leg / Rep",            short:"Side lunge",        reps:5,
+     metric:"No. of Lunge",    unit:"lunges",   was:["Side Lunge (2 kg Dumbbell)"],
+     params:[{key:"weight", label:"Dumbbell Weight",       unit:"kg",     hint:"2", chip:"kg", dec:true},
+             {key:"perleg", label:"Lunge / Leg / Rep",     unit:"lunges", hint:"20", chip:"lunges/leg"}]},
+    {key:"pogo",       name:"Pogo Hopping",                      short:"Pogo hopping",      reps:5,
+     metric:"No. of Big Hop",  unit:"big hops", was:["Pogo Hopping"],
+     params:[{key:"small",  label:"Small Hops / Big Hop",  unit:"hops",   hint:"5",  chip:"small hops/hop"}]}
+  ];
+  /* every name a file may use for an exercise: the current one plus older exports */
+  function exNames(ex){ return [ex.name].concat(ex.was || []); }
+  var BY_NAME = {}, BY_SHORT = {};
+  PHYSIO.forEach(function(e){
+    exNames(e).forEach(function(n){ BY_NAME[n.toLowerCase()] = e; });
+    BY_SHORT[e.short.toLowerCase()] = e;
+  });
+  var LOCATIONS = ["East Coast Park","Bukit Timah Hill","Harvey Estate","Gym"];
+  var PER_PAGE = 20, STORE = "exercise-log-v1", SEQ = "exercise-log-files";
+
+  var $ = function(id){ return document.getElementById(id); };
+  var records = load(), page = 0, editingId = null, dirHandle = null;
+
+  /* monotonic, collision-free record id (Date.now() alone repeats within a ms) */
+  function uid(){
+    var t = Date.now();
+    if(t <= uid.last) t = uid.last + 1;
+    uid.last = t;
+    return t;
+  }
+  uid.last = 0;
+  function syncUid(){
+    uid.last = records.reduce(function(m,r){ return Math.max(m, +r.id || 0); }, 0);
+  }
+
+  /* ---------------- storage ---------------- */
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORE);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch(e){ return []; }
+  }
+  function save(){
+    try{ localStorage.setItem(STORE, JSON.stringify(records)); }
+    catch(e){
+      if(!save.warned){ save.warned = true; toast("Could not save to this browser's storage — export to keep this"); }
+    }
+  }
+
+  /* ---------------- build physio inputs ---------------- */
+  function buildPhysio(){
+    $("panelPhysio").innerHTML = PHYSIO.map(function(ex){
+      var params = (ex.params || []).map(function(p){
+        var id = "p_"+ex.key+"_"+p.key;
+        return '<div class="rep">'+
+                 '<span class="rep-lbl" aria-hidden="true">'+esc(p.label)+'</span>'+
+                 '<label class="sr" for="'+id+'">'+esc(ex.name+" — "+p.label+" ("+p.unit+")")+'</label>'+
+                 '<div class="field'+(p.unit.length>5?' wide':'')+'">'+
+                   '<input id="'+id+'" data-ex="'+ex.key+'" data-param="'+p.key+'" type="number" '+
+                   (p.dec ? 'inputmode="decimal" step="0.5" ' : 'inputmode="numeric" pattern="[0-9]*" step="1" ')+
+                   'min="0" placeholder="'+p.hint+'">'+
+                   '<span class="unit">'+esc(p.unit)+'</span>'+
+                 '</div>'+
+               '</div>';
+      }).join("");
+      var reps = "";
+      for(var i=1;i<=ex.reps;i++){
+        var id = "f_"+ex.key+"_"+i;
+        reps += '<div class="rep">'+
+                  '<span class="rep-lbl" aria-hidden="true">Rep '+i+'</span>'+
+                  '<label class="sr" for="'+id+'">'+ex.name+' rep '+i+' ('+ex.unit+')</label>'+
+                  '<div class="field'+(ex.unit.length>5?' wide':'')+'">'+
+                    '<input id="'+id+'" data-ex="'+ex.key+'" data-rep="'+i+'" type="number" '+
+                    'inputmode="numeric" pattern="[0-9]*" min="0" step="1" placeholder="0">'+
+                    '<span class="unit">'+ex.unit+'</span>'+
+                  '</div>'+
+                '</div>';
+      }
+      return '<div class="ex">'+
+               '<div class="ex-h"><span class="ex-name">'+esc(ex.name)+'</span>'+
+               '<span class="ex-meta">'+ex.metric+' &middot; '+ex.reps+' reps</span></div>'+
+               (params ? '<div class="params">'+params+'</div>' : "")+
+               '<div class="reps">'+reps+'</div>'+
+             '</div>';
+    }).join("");
+  }
+
+  /* ---------------- helpers ---------------- */
+  function pad(n){ return (n<10?"0":"")+n; }
+  function todayISO(){
+    var d = new Date();
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  }
+  function intOrNull(v){
+    if(v === null || v === undefined) return null;
+    v = String(v).trim();
+    if(v === "") return null;
+    if(!/^\d+$/.test(v)) return NaN;
+    return parseInt(v,10);
+  }
+  /* km: a number with up to 2 decimal places */
+  function kmOrNull(v){
+    if(v === null || v === undefined) return null;
+    v = String(v).trim();
+    if(v === "") return null;
+    if(!/^\d+(\.\d{1,2})?$/.test(v)) return NaN;
+    return Math.round(parseFloat(v)*100)/100;
+  }
+  function fmtKm(n){
+    n = Math.round((+n || 0)*100)/100;
+    return n.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+  }
+  function fmtDate(iso){
+    var p = String(iso).split("-");
+    var d = new Date(+p[0], +p[1]-1, +p[2]);
+    if(isNaN(d)) return {day:iso, year:""};
+    var M = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var W = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    return {day:d.getDate()+" "+M[d.getMonth()], year:W[d.getDay()]+" "+d.getFullYear()};
+  }
+  function esc(s){
+    return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];
+    });
+  }
+  function toast(t){
+    var el = $("toast"); el.textContent = t; el.classList.add("show");
+    clearTimeout(toast._t); toast._t = setTimeout(function(){ el.classList.remove("show"); }, 3200);
+  }
+  function say(t, cls){
+    var m = $("msg"); m.textContent = t || ""; m.className = "msg " + (cls||"");
+    if(t){ clearTimeout(say._t); say._t = setTimeout(function(){ m.textContent=""; }, 4500); }
+  }
+  function sorted(){
+    return records.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+      return (b.id||0) - (a.id||0);
+    });
+  }
+
+  /* ---------------- CSV ---------------- */
+  function q(v){
+    v = (v === null || v === undefined) ? "" : String(v);
+    return /[",\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v;
+  }
+  /* one row per record; each exercise's settings and rep values fan out across columns */
+  function paramHead(ex, p){ return ex.name+" "+p.label+" ("+p.unit+")"; }
+  function csvHeader(){
+    var head = ["Date","Type","Location","Distance (km)"];
+    PHYSIO.forEach(function(ex){
+      (ex.params || []).forEach(function(p){ head.push(paramHead(ex, p)); });
+      for(var i=1;i<=ex.reps;i++) head.push(ex.name+" Rep "+i+" ("+ex.unit+")");
+    });
+    return head;
+  }
+  function toCSV(){
+    var rows = [csvHeader()];
+    records.slice().sort(function(a,b){
+      if(a.date !== b.date) return a.date < b.date ? -1 : 1;
+      return (a.id||0) - (b.id||0);
+    }).forEach(function(r){
+      var row = [r.date, r.type, "", ""];
+      if(r.type === "Walk"){
+        row[2] = r.loc || "";
+        row[3] = fmtKm(r.km);
+        PHYSIO.forEach(function(ex){
+          (ex.params || []).forEach(function(){ row.push(""); });
+          for(var i=0;i<ex.reps;i++) row.push("");
+        });
+      }else{
+        PHYSIO.forEach(function(ex){
+          var set = (r.params && r.params[ex.key]) || {};
+          (ex.params || []).forEach(function(p){
+            var v = set[p.key];
+            row.push(v === null || v === undefined ? "" : v);
+          });
+          var vals = (r.items && r.items[ex.key]) || [];
+          for(var i=0;i<ex.reps;i++){
+            var v = vals[i];
+            row.push(v === null || v === undefined ? "" : v);
+          }
+        });
+      }
+      rows.push(row);
+    });
+    return rows.map(function(r){ return r.map(q).join(","); }).join("\r\n") + "\r\n";
+  }
+
+  /* ---- file naming: exercise_yymmdd.csv, then _01, _02, ... ---- */
+  function stamp(){
+    var d = new Date();
+    return String(d.getFullYear()).slice(2)+pad(d.getMonth()+1)+pad(d.getDate());
+  }
+  function fileName(i){
+    return "exercise_"+stamp()+(i > 0 ? "_"+pad(i) : "")+".csv";
+  }
+  /* without folder access the page can't see the disk, so keep our own counter */
+  function seqCount(){
+    var seq = {};
+    try{ seq = JSON.parse(localStorage.getItem(SEQ) || "{}") || {}; }catch(e){ seq = {}; }
+    return +seq[stamp()] || 0;
+  }
+  function bumpSeq(){
+    var seq = {}; seq[stamp()] = seqCount() + 1;
+    try{ localStorage.setItem(SEQ, JSON.stringify(seq)); }catch(e){}
+  }
+  function peekName(){ return fileName(seqCount()); }
+  function nextDownloadName(){ var n = peekName(); bumpSeq(); return n; }
+
+  /* iPadOS reports itself as a Mac, so touch points are part of the test */
+  function isIOS(){
+    var p = navigator.platform || "", ua = navigator.userAgent || "";
+    return /iP(hone|ad|od)/.test(p) || /iP(hone|ad|od)/.test(ua) ||
+           (/Mac/.test(p) && navigator.maxTouchPoints > 1);
+  }
+  function makeFile(text, name){
+    try{ return new File([text], name, {type:"text/csv"}); }catch(e){ return null; }
+  }
+  function canShareFile(f){
+    try{ return !!(f && navigator.share && navigator.canShare && navigator.canShare({files:[f]})); }
+    catch(e){ return false; }
+  }
+  /* a page opened straight from Files has no real origin, and iOS refuses blob downloads
+     there — the tap either does nothing or navigates away and loses the unsaved page */
+  function isLocalFile(){ return location.protocol === "file:"; }
+  function canDownload(){
+    if(!("download" in document.createElement("a"))) return false;
+    if(isIOS() && isLocalFile()) return false;
+    return true;
+  }
+
+  /* nothing else worked: put the CSV on screen so it can still be copied off the device */
+  function showSheet(text, name, why){
+    $("sheetName").textContent = name;
+    $("sheetWhy").textContent = why || "This browser won't let the page hand you a file. "+
+      "Copy the text below into Notes or a spreadsheet — Import CSV reads it back later.";
+    $("sheetText").value = text;
+    $("sheet").hidden = false;
+  }
+  function hideSheet(){ $("sheet").hidden = true; $("sheetText").value = ""; }
+
+  /* ---- IndexedDB: remember the chosen folder between visits ---- */
+  function idb(){
+    return new Promise(function(res){
+      if(!window.indexedDB) return res(null);
+      var rq;
+      try{ rq = indexedDB.open("exercise-log", 1); }catch(e){ return res(null); }
+      rq.onupgradeneeded = function(){ rq.result.createObjectStore("kv"); };
+      rq.onsuccess = function(){ res(rq.result); };
+      rq.onerror = function(){ res(null); };
+    });
+  }
+  function idbSet(k, v){
+    return idb().then(function(db){
+      if(!db) return false;
+      return new Promise(function(res){
+        try{
+          var tx = db.transaction("kv","readwrite");
+          tx.objectStore("kv").put(v, k);
+          tx.oncomplete = function(){ res(true); };
+          tx.onerror = function(){ res(false); };
+        }catch(e){ res(false); }
+      });
+    });
+  }
+  function idbGet(k){
+    return idb().then(function(db){
+      if(!db) return null;
+      return new Promise(function(res){
+        try{
+          var tx = db.transaction("kv","readonly");
+          var rq = tx.objectStore("kv").get(k);
+          rq.onsuccess = function(){ res(rq.result || null); };
+          rq.onerror = function(){ res(null); };
+        }catch(e){ res(null); }
+      });
+    });
+  }
+
+  /* ---- folder access (Chrome/Edge on desktop; iOS Safari falls back to a download) ---- */
+  function canPickFolder(){ return typeof window.showDirectoryPicker === "function"; }
+  function ensurePerm(h, ask){
+    if(!h || !h.queryPermission) return Promise.resolve(!!h);
+    var opts = {mode:"readwrite"};
+    return h.queryPermission(opts).then(function(p){
+      if(p === "granted") return true;
+      if(!ask) return false;
+      return h.requestPermission(opts).then(function(p2){ return p2 === "granted"; });
+    }).catch(function(){ return false; });
+  }
+  function pickFolder(){
+    if(!canPickFolder()){ toast("This browser can't write to a folder — files go to Downloads"); return; }
+    window.showDirectoryPicker({mode:"readwrite", id:"exercise-log"}).then(function(h){
+      return ensurePerm(h, true).then(function(ok){
+        if(!ok) return;
+        dirHandle = h;
+        idbSet("dir", h);
+        showDest();
+        toast('Records will be saved into "'+h.name+'"');
+      });
+    }).catch(function(){ /* user cancelled */ });
+  }
+  /* first free name in the chosen folder */
+  function nextFreeName(i){
+    i = i || 0;
+    if(i > 99) return Promise.resolve(fileName(99));
+    var name = fileName(i);
+    return dirHandle.getFileHandle(name).then(
+      function(){ return nextFreeName(i+1); },   /* exists -> try the next number */
+      function(err){
+        if(err && err.name === "NotFoundError") return name;
+        throw err;
+      }
+    );
+  }
+  function writeToFolder(text){
+    return ensurePerm(dirHandle, true).then(function(ok){
+      if(!ok) throw new Error("no permission");
+      return nextFreeName(0);
+    }).then(function(name){
+      return dirHandle.getFileHandle(name, {create:true}).then(function(fh){
+        return fh.createWritable().then(function(w){
+          return w.write(text).then(function(){ return w.close(); });
+        });
+      }).then(function(){ return name; });
+    });
+  }
+  function downloadFile(text, name){
+    name = name || nextDownloadName();
+    var blob = new Blob([text], {type:"text/csv;charset=utf-8;"});
+    if(window.navigator && window.navigator.msSaveBlob){
+      window.navigator.msSaveBlob(blob, name); return name;
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = name; a.rel = "noopener";
+    a.style.position = "fixed"; a.style.opacity = "0";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 4000);
+    return name;
+  }
+  /* writes a new versioned csv; resolves with {mode, name}
+     desktop Chrome/Edge -> straight into the chosen folder
+     iOS Safari          -> share sheet, where "Save to Files" can target any folder
+     anything else       -> ordinary download                                        */
+  function exportCSV(){
+    var text = "﻿" + toCSV();
+    if(dirHandle){
+      return writeToFolder(text).then(
+        function(name){ return {mode:"folder", name:name}; },
+        function(){ return {mode:"download", name:downloadFile(text), fellBack:true}; }
+      );
+    }
+    var name = peekName();
+    /* anything the browser can't save has to end up on screen instead */
+    var rescue = function(){
+      if(canDownload()){
+        downloadFile(text, name); bumpSeq();
+        return {mode:"download", name:name, fellBack:true};
+      }
+      showSheet(text, name); bumpSeq();
+      return {mode:"text", name:name};
+    };
+    if(isIOS()){
+      var file = makeFile(text, name);
+      if(canShareFile(file)){
+        var p;
+        /* must stay inside the tap that triggered it, so no awaiting before this */
+        try{ p = navigator.share({files:[file], title:name}); }catch(e){ p = null; }
+        if(p && p.then){
+          return p.then(function(){
+            bumpSeq();
+            return {mode:"share", name:name};
+          }, function(err){
+            /* AbortError = the user dismissed the sheet; anything else = blocked, so save it anyway */
+            if(err && err.name === "AbortError"){ return {mode:"cancelled", name:name}; }
+            return rescue();
+          });
+        }
+      }
+      /* no share sheet on this device — don't fire a download that iOS will swallow */
+      if(!canDownload()){
+        showSheet(text, name); bumpSeq();
+        return Promise.resolve({mode:"text", name:name});
+      }
+    }
+    if(!canDownload()){
+      showSheet(text, name); bumpSeq();
+      return Promise.resolve({mode:"text", name:name});
+    }
+    return Promise.resolve({mode:"download", name:downloadFile(text)});
+  }
+  function announceExport(res, verb){
+    showDest();
+    if(res.mode === "folder"){
+      toast(verb+" · "+res.name+" → "+dirHandle.name+"/");
+      say(verb+" · saved as "+res.name, "ok");
+    }else if(res.mode === "share"){
+      toast(verb+" · "+res.name+" shared");
+      say(verb+" · saved as "+res.name, "ok");
+    }else if(res.mode === "text"){
+      toast(verb+" · "+res.name+" shown for copying");
+      say(verb+" · copy the CSV from the panel to keep it", "ok");
+    }else if(res.mode === "cancelled"){
+      toast("Record kept · "+res.name+" not saved");
+      say("Record kept — export cancelled, tap “Export now” when ready", "err");
+    }else{
+      toast(verb+" · "+res.name+" downloaded"+(res.fellBack?" (folder unavailable)":""));
+      say(verb+" · "+res.name+" exported", "ok");
+    }
+  }
+  /* the toggle only governs automatic exports; "Export now" always exports */
+  function autoOn(){ return $("auto").checked; }
+  function maybeExport(verb){
+    if(!autoOn()){ say(verb+" · auto-export is off", "ok"); return; }
+    exportCSV().then(function(res){ announceExport(res, verb); });
+  }
+  function showDest(){
+    var d = $("dest"), f = $("btnFolder"), next = esc(peekName());
+    if(dirHandle){
+      d.innerHTML = 'Physio programme &amp; walks &middot; saving to <b>'+esc(dirHandle.name)+'/'+next+'</b>';
+      f.textContent = "Change folder…";
+      f.hidden = false;
+    }else if(isIOS()){
+      var file = makeFile("test", "test.csv");
+      d.innerHTML = 'Physio programme &amp; walks &middot; next export <b>'+next+'</b> — '+
+        (canShareFile(file) ? 'choose <b>Save to Files</b> and pick this folder'
+                            : 'this page can only show the CSV for copying, so keep a note handy');
+      f.hidden = true;
+    }else if(canPickFolder()){
+      d.innerHTML = 'Physio programme &amp; walks &middot; exports go to <b>Downloads</b> — pick a folder to save beside this file';
+      f.textContent = "Save to folder…";
+      f.hidden = false;
+    }else{
+      d.innerHTML = 'Physio programme &amp; walks &middot; next export <b>'+next+'</b>';
+      f.hidden = true;
+    }
+  }
+
+  /* iOS Safari can refuse storage to pages opened straight from Files */
+  function storageWorks(){
+    try{
+      localStorage.setItem("exercise-log-probe","1");
+      localStorage.removeItem("exercise-log-probe");
+      return true;
+    }catch(e){ return false; }
+  }
+
+  /* ---------------- CSV import ---------------- */
+  function parseCSV(text){
+    text = text.replace(/^﻿/, "");
+    var rows = [], row = [], cur = "", inQ = false;
+    for(var i=0;i<text.length;i++){
+      var c = text[i];
+      if(inQ){
+        if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else inQ = false; }
+        else cur += c;
+      }else if(c === '"'){ inQ = true; }
+      else if(c === ","){ row.push(cur); cur = ""; }
+      else if(c === "\n"){ row.push(cur); rows.push(row); row = []; cur = ""; }
+      else if(c !== "\r"){ cur += c; }
+    }
+    if(cur !== "" || row.length){ row.push(cur); rows.push(row); }
+    return rows.filter(function(r){ return r.some(function(c){ return String(c).trim() !== ""; }); });
+  }
+  /* wide files (one row per record) are the current format;
+     older long files with Rep/Value columns still import */
+  function importCSV(text){
+    var rows = parseCSV(text);
+    if(!rows.length) return 0;
+    var head = /date/i.test(rows[0][0]||"") ? rows.shift().map(function(s){
+      return String(s).trim().toLowerCase();
+    }) : null;
+    var isLong = !head || (head.indexOf("value") > -1 && head.indexOf("rep") > -1);
+    var added = isLong ? readLong(rows, head) : readWide(rows, head);
+    added = added.filter(function(g){
+      return g.type === "Walk" ? g.km !== null : Object.keys(g.items).length;
+    });
+    records = added;
+    syncUid();
+    save(); page = 0; endEdit(); render();
+    return added.length;
+  }
+
+  /* current format: Date, Type, Location, Distance (km), then "<exercise> Rep n" columns */
+  function readWide(rows, head){
+    var at = function(n){ return head.indexOf(n); };
+    var col = {date:at("date"), type:at("type"), loc:at("location"), km:-1};
+    for(var i=0;i<head.length;i++){ if(/^distance/.test(head[i]) || head[i] === "km"){ col.km = i; break; } }
+    /* every heading a settings column may carry, current names and older ones */
+    var paramBy = {};
+    PHYSIO.forEach(function(ex){
+      (ex.params || []).forEach(function(p){
+        exNames(ex).forEach(function(n){
+          paramBy[(n+" "+p.label+" ("+p.unit+")").toLowerCase()] = {ex:ex, p:p};
+          paramBy[(n+" "+p.label).toLowerCase()] = {ex:ex, p:p};
+        });
+      });
+    });
+    var repCols = [], paramCols = [];
+    head.forEach(function(h, i){
+      var hit = paramBy[h];
+      if(hit){ paramCols.push({ex:hit.ex, p:hit.p, col:i}); return; }
+      var m = h.match(/^(.+?)\s+rep\s*(\d+)/);
+      if(!m) return;
+      var ex = BY_NAME[m[1].trim()] || BY_SHORT[m[1].trim()];
+      if(ex) repCols.push({ex:ex, idx:+m[2] - 1, col:i});
+    });
+    var out = [];
+    rows.forEach(function(r){
+      var date = String(r[col.date]||"").trim();
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      var type = /walk/i.test(String(r[col.type]||"")) ? "Walk" : "Physio";
+      var rec = {id:uid(), date:date, type:type, km:null, loc:"", items:{}, params:{}};
+      if(type === "Walk"){
+        var km = col.km === -1 ? null : kmOrNull(r[col.km]);
+        if(km !== null && !isNaN(km)) rec.km = km;
+        var loc = col.loc === -1 ? "" : String(r[col.loc]||"").trim();
+        if(LOCATIONS.indexOf(loc) > -1) rec.loc = loc;
+      }else{
+        repCols.forEach(function(c){
+          if(c.idx < 0 || c.idx >= c.ex.reps) return;
+          var val = intOrNull(r[c.col]);
+          if(val === null || isNaN(val)) return;
+          if(!rec.items[c.ex.key]) rec.items[c.ex.key] = new Array(c.ex.reps).fill(null);
+          rec.items[c.ex.key][c.idx] = val;
+        });
+        paramCols.forEach(function(c){
+          var val = c.p.dec ? kmOrNull(r[c.col]) : intOrNull(r[c.col]);
+          if(val === null || isNaN(val)) return;
+          if(!rec.params[c.ex.key]) rec.params[c.ex.key] = {};
+          rec.params[c.ex.key][c.p.key] = val;
+        });
+      }
+      out.push(rec);
+    });
+    return out;
+  }
+
+  /* older format: one row per rep, merged back by date and type */
+  function readLong(rows, head){
+    var col = {date:0, type:1, act:2, loc:-1, rep:3, val:4};
+    if(head){
+      var at = function(n, dflt){ var i = head.indexOf(n); return i === -1 ? dflt : i; };
+      col = {date:at("date",0), type:at("type",1), act:at("activity",2),
+             loc:at("location",-1), rep:at("rep",3), val:at("value",4)};
+    }
+    var groups = {}, order = [];
+    rows.forEach(function(r){
+      var date = String(r[col.date]||"").trim();
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      var type = /walk/i.test(String(r[col.type]||"")) ? "Walk" : "Physio";
+      var key = date + "|" + type;
+      if(!groups[key]){
+        groups[key] = {id:uid(), date:date, type:type, km:null, loc:"", items:{}, params:{}};
+        order.push(key);
+      }
+      var g = groups[key], raw = r[col.val];
+      if(type === "Walk"){
+        var km = kmOrNull(raw);
+        if(km !== null && !isNaN(km)) g.km = km;
+        var loc = col.loc === -1 ? "" : String(r[col.loc]||"").trim();
+        if(LOCATIONS.indexOf(loc) > -1) g.loc = loc;
+        return;
+      }
+      var val = intOrNull(raw);
+      if(val === null || isNaN(val)) return;
+      var ex = BY_NAME[String(r[col.act]||"").trim().toLowerCase()];
+      if(!ex) return;
+      var idx = (String(r[col.rep]||"").match(/\d+/) || [1])[0] - 1;
+      if(idx < 0 || idx >= ex.reps) return;
+      if(!g.items[ex.key]) g.items[ex.key] = new Array(ex.reps).fill(null);
+      g.items[ex.key][idx] = val;
+    });
+    return order.map(function(k){ return groups[k]; });
+  }
+
+  /* ---------------- render ---------------- */
+  function renderStats(){
+    var km = 0, physio = 0, days = {};
+    var cut = new Date(); cut.setDate(cut.getDate()-27);
+    var cutISO = cut.getFullYear()+"-"+pad(cut.getMonth()+1)+"-"+pad(cut.getDate());
+    records.forEach(function(r){
+      if(r.type === "Walk") km += (+r.km || 0); else physio++;
+      if(r.date >= cutISO) days[r.date] = 1;
+    });
+    var tiles = [
+      {k:"Total records", v:records.length, u:""},
+      {k:"Distance walked", v:fmtKm(km), u:"km"},
+      {k:"Physio sessions", v:physio, u:""},
+      {k:"Active days", v:Object.keys(days).length, u:"last 28d"}
+    ];
+    $("stats").innerHTML = tiles.map(function(t){
+      return '<div class="tile"><div class="k">'+t.k+'</div><div class="v">'+t.v+
+             (t.u?'<small>'+t.u+'</small>':'')+'</div></div>';
+    }).join("");
+  }
+
+  function renderList(){
+    var all = sorted(), total = all.length;
+    var pages = Math.max(1, Math.ceil(total / PER_PAGE));
+    if(page > pages-1) page = pages-1;
+    if(page < 0) page = 0;
+    var start = page*PER_PAGE, slice = all.slice(start, start+PER_PAGE);
+
+    if(!total){
+      $("list").innerHTML = '<div class="empty">No records yet.<br>Add your first walk or physio session above.</div>';
+      $("pager").hidden = true;
+      return;
+    }
+
+    $("list").innerHTML = slice.map(function(r){
+      var d = fmtDate(r.date), body;
+      if(r.type === "Walk"){
+        body = '<div class="rec-km">'+fmtKm(r.km)+'<small>km walked</small></div>'+
+               (r.loc ? '<div class="rec-loc">'+esc(r.loc)+'</div>' : "");
+      }else{
+        var chips = PHYSIO.map(function(ex){
+          var vals = (r.items && r.items[ex.key]) || [];
+          var shown = [];
+          for(var i=0;i<ex.reps;i++){
+            var v = vals[i];
+            if(v !== null && v !== undefined && v !== "") shown.push(v);
+          }
+          if(!shown.length) return "";
+          var set = (r.params && r.params[ex.key]) || {};
+          var notes = (ex.params || []).map(function(p){
+            var v = set[p.key];
+            return (v === null || v === undefined) ? "" : v+" "+p.chip;
+          }).filter(Boolean).join(", ");
+          return '<span class="chip">'+ex.short+' <b>'+shown.join(" &middot; ")+'</b> '+ex.unit+
+                 (notes ? ' <span class="p">('+esc(notes)+')</span>' : "")+'</span>';
+        }).filter(Boolean).join("");
+        body = '<div class="chips">'+(chips || '<span class="chip">No values recorded</span>')+'</div>';
+      }
+      return '<div class="rec'+(r.id === editingId ? " is-editing" : "")+'">'+
+        '<div class="rec-date"><div class="rec-day">'+d.day+'</div><div class="rec-year">'+d.year+'</div></div>'+
+        '<div class="rec-main"><span class="pill '+(r.type==="Walk"?"walk":"physio")+'">'+r.type+'</span>'+body+'</div>'+
+        '<div class="rec-tools">'+
+          '<button type="button" data-edit="'+r.id+'" aria-label="Edit record" title="Edit">&#9998;</button>'+
+          '<button type="button" class="del" data-del="'+r.id+'" aria-label="Delete record" title="Delete">&times;</button>'+
+        '</div>'+
+      '</div>';
+    }).join("");
+
+    $("pager").hidden = total <= PER_PAGE;
+    $("count").textContent = "Showing "+(start+1)+"–"+Math.min(start+PER_PAGE,total)+" of "+total+
+                             "  ·  Page "+(page+1)+" of "+pages;
+    $("prev").disabled = page === 0;
+    $("next").disabled = page >= pages-1;
+  }
+  function render(){ renderStats(); renderList(); }
+
+  /* ---------------- form ---------------- */
+  function switchType(){
+    var walk = $("type").value === "Walk";
+    $("panelWalk").hidden = !walk;
+    $("panelPhysio").hidden = walk;
+  }
+  function clearInputs(){
+    $("km").value = ""; $("loc").value = "";
+    Array.prototype.forEach.call($("panelPhysio").querySelectorAll("input"), function(i){ i.value = ""; });
+  }
+  function findRec(id){
+    for(var i=0;i<records.length;i++) if(records[i].id === id) return i;
+    return -1;
+  }
+  function startEdit(id){
+    var i = findRec(id);
+    if(i === -1) return;
+    var r = records[i];
+    editingId = id;
+    clearInputs();
+    $("date").value = r.date;
+    $("type").value = r.type;
+    switchType();
+    if(r.type === "Walk"){
+      $("km").value = r.km === null || r.km === undefined ? "" : fmtKm(r.km);
+      $("loc").value = LOCATIONS.indexOf(r.loc) > -1 ? r.loc : "";
+    }else{
+      PHYSIO.forEach(function(ex){
+        var vals = (r.items && r.items[ex.key]) || [];
+        for(var n=1;n<=ex.reps;n++){
+          var el = $("f_"+ex.key+"_"+n), v = vals[n-1];
+          if(el) el.value = (v === null || v === undefined) ? "" : v;
+        }
+        var set = (r.params && r.params[ex.key]) || {};
+        (ex.params || []).forEach(function(p){
+          var el = $("p_"+ex.key+"_"+p.key), v = set[p.key];
+          if(el) el.value = (v === null || v === undefined) ? "" : v;
+        });
+      });
+    }
+    $("formTitle").textContent = "Edit record";
+    $("formHint").textContent = "Editing the record of "+fmtDate(r.date).day+" — save or cancel";
+    $("btnSubmit").textContent = "Save changes";
+    $("btnCancel").hidden = false;
+    $("btnReset").hidden = true;
+    $("formCard").classList.add("editing");
+    renderList();
+    say("");
+    $("formCard").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+  function endEdit(){
+    editingId = null;
+    $("formTitle").textContent = "Add a record";
+    $("formHint").textContent = "Leave a rep blank if not done";
+    $("btnSubmit").textContent = "Add record";
+    $("btnCancel").hidden = true;
+    $("btnReset").hidden = false;
+    $("formCard").classList.remove("editing");
+  }
+
+  /* build a record from the form, or return null after showing why not */
+  function readForm(id){
+    var date = $("date").value;
+    if(!date){ say("Pick a date first.","err"); $("date").focus(); return null; }
+    var type = $("type").value;
+    var rec = {id:id, date:date, type:type, km:null, loc:"", items:{}, params:{}};
+
+    if(type === "Walk"){
+      var km = kmOrNull($("km").value);
+      if(km === null){ say("Enter the distance walked.","err"); $("km").focus(); return null; }
+      if(isNaN(km)){ say("Distance must be a number with up to 2 decimal places.","err"); $("km").focus(); return null; }
+      if(!$("loc").value){ say("Choose a location.","err"); $("loc").focus(); return null; }
+      rec.km = km;
+      rec.loc = $("loc").value;
+    }else{
+      var bad = null, badParam = null, any = false;
+      PHYSIO.forEach(function(ex){
+        var arr = new Array(ex.reps).fill(null), used = false;
+        for(var i=1;i<=ex.reps;i++){
+          var el = $("f_"+ex.key+"_"+i);
+          var v = intOrNull(el.value);
+          if(v === null) continue;
+          if(isNaN(v) || v < 0){ bad = bad || el; continue; }
+          arr[i-1] = v; used = true; any = true;
+        }
+        if(used) rec.items[ex.key] = arr;
+
+        var got = {}, hasParam = false;
+        (ex.params || []).forEach(function(p){
+          var el = $("p_"+ex.key+"_"+p.key);
+          if(!el) return;
+          var v = p.dec ? kmOrNull(el.value) : intOrNull(el.value);
+          if(v === null) return;
+          if(isNaN(v) || v < 0){ badParam = badParam || el; return; }
+          got[p.key] = v; hasParam = true;
+        });
+        if(hasParam) rec.params[ex.key] = got;
+      });
+      if(bad){ say("Physio values must be whole numbers of 0 or more.","err"); bad.focus(); return null; }
+      if(badParam){ say("Check the exercise settings — weights allow 2 decimal places, the rest are whole numbers.","err"); badParam.focus(); return null; }
+      if(!any){ say("Enter at least one physio value.","err"); return null; }
+    }
+    return rec;
+  }
+
+  $("form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var isEdit = editingId !== null;
+    var rec = readForm(isEdit ? editingId : uid());
+    if(!rec) return;
+
+    if(isEdit){
+      var i = findRec(editingId);
+      if(i === -1){ endEdit(); say("That record no longer exists.","err"); render(); return; }
+      records[i] = rec;
+      endEdit();
+    }else{
+      records.push(rec);
+      page = 0;
+    }
+    save();
+    render();
+    clearInputs();
+    maybeExport(isEdit ? "Record updated" : "Record added");
+  });
+
+  $("type").addEventListener("change", function(){ switchType(); say(""); });
+  $("btnCancel").addEventListener("click", function(){ endEdit(); clearInputs(); renderList(); say("Edit cancelled"); });
+  $("btnReset").addEventListener("click", function(){ clearInputs(); $("date").value = todayISO(); say(""); });
+  $("btnFolder").addEventListener("click", pickFolder);
+  $("btnExport").addEventListener("click", function(){
+    if(!records.length){ toast("No records to export yet"); return; }
+    exportCSV().then(function(res){ announceExport(res, "Exported"); });
+  });
+  $("fileImport").addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0];
+    if(!f){ toast("No file was picked"); return; }
+    var msg = records.length ? "Replace the "+records.length+" record(s) on this device with the contents of this file?" : null;
+    if(msg && !confirm(msg)){ e.target.value = ""; return; }
+    var fr = new FileReader();
+    fr.onerror = function(){
+      toast("Could not read "+f.name+" — if it lives in iCloud, open it in Files first");
+      e.target.value = "";
+    };
+    fr.onload = function(){
+      var text = String(fr.result || "");
+      try{
+        if(!text.trim()){ toast(f.name+" is empty"); }
+        else if(text.indexOf(",") === -1){ toast(f.name+" doesn't look like a CSV"); }
+        else{
+          var n = importCSV(text);
+          toast(n ? "Imported "+n+" record(s) from "+f.name
+                  : "No exercise rows found in "+f.name);
+        }
+      }catch(err){ toast("Could not read that file"); }
+      e.target.value = "";   /* allow re-picking the same file */
+    };
+    try{ fr.readAsText(f); }
+    catch(err){ toast("Could not open that file"); e.target.value = ""; }
+  });
+  $("sheetClose").addEventListener("click", hideSheet);
+  $("sheet").addEventListener("click", function(e){ if(e.target === $("sheet")) hideSheet(); });
+  $("sheetCopy").addEventListener("click", function(){
+    var t = $("sheetText"), done = false;
+    try{
+      t.readOnly = false;                 /* iOS won't select inside a read-only field */
+      t.focus(); t.setSelectionRange(0, t.value.length);
+      done = document.execCommand("copy");
+    }catch(e){}
+    t.readOnly = true;
+    if(done){ toast("CSV copied"); return; }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(t.value).then(
+        function(){ toast("CSV copied"); },
+        function(){ toast("Touch and hold the text, then Select All → Copy"); });
+      return;
+    }
+    toast("Touch and hold the text, then Select All → Copy");
+  });
+
+  function turn(delta){
+    page += delta; renderList();
+    var card = $("list").parentNode;
+    if(card && card.scrollIntoView) card.scrollIntoView({behavior:"smooth", block:"start"});
+  }
+  $("prev").addEventListener("click", function(){ turn(-1); });
+  $("next").addEventListener("click", function(){ turn(1); });
+
+  $("list").addEventListener("click", function(e){
+    var ed = e.target.closest("[data-edit]");
+    if(ed){ startEdit(+ed.getAttribute("data-edit")); return; }
+    var b = e.target.closest("[data-del]");
+    if(!b) return;
+    var id = +b.getAttribute("data-del");
+    if(!confirm("Delete this record?")) return;
+    records = records.filter(function(r){ return r.id !== id; });
+    if(editingId === id){ endEdit(); clearInputs(); }
+    save(); render();
+    maybeExport("Record deleted");
+  });
+
+  /* ---------------- init ---------------- */
+  var AUTO = "exercise-log-auto";
+  try{ $("auto").checked = localStorage.getItem(AUTO) !== "0"; }catch(e){}
+  $("auto").addEventListener("change", function(){
+    try{ localStorage.setItem(AUTO, $("auto").checked ? "1" : "0"); }catch(e){}
+  });
+  if(!storageWorks()){
+    $("warn").hidden = false;
+    $("warn").textContent = isIOS() && isLocalFile()
+      ? "Opened as a file, iPhone and iPad give the page no storage, so records vanish when the tab closes. "+
+        "Keep “Export after each record” on and use Import CSV to carry them back in — or put this page on a web address "+
+        "and Add to Home Screen, where everything is remembered."
+      : "This browser won't let the page store data, so records will disappear when the tab closes. "+
+        "Export after each entry and use Import CSV to carry them back in.";
+  }
+  syncUid();
+  buildPhysio();
+  $("date").value = todayISO();
+  switchType();
+  endEdit();
+  render();
+  showDest();
+  if(canPickFolder()){
+    idbGet("dir").then(function(h){
+      if(!h) return;
+      dirHandle = h;
+      showDest();
+      ensurePerm(h, false).then(function(ok){
+        if(!ok) toast('Folder "'+h.name+'" needs re-approval — it will ask on your next save');
+      });
+    });
+  }
+})();
+</script>
+</body>
+</html>

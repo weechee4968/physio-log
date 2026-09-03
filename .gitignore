@@ -1,0 +1,7 @@
+# personal exercise data — never publish
+*.csv
+
+# working notes
+prompt*.txt
+
+.DS_Store
